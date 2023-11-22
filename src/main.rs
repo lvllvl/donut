@@ -6,8 +6,8 @@ use crossterm::{
     terminal::{self, ClearType, size},
     ExecutableCommand,
 };
-
-mod config; 
+mod config;
+use config::{ GRID_HEIGHT, GRID_WIDTH, WIDTH, HEIGHT, RADIUS };
 
 fn main() {
     // Crossterm setup
@@ -16,7 +16,7 @@ fn main() {
     stdout.execute(terminal::Clear(ClearType::All)).expect("Failed to clear screen");
     stdout.execute(cursor::Hide).expect("Failed to hide cursor");
     
-    let ( circle_width, circle_height ) = ( config::RADIUS * 2, config::RADIUS ); // Circle dimensions
+    let ( circle_width, circle_height ) = ( RADIUS * 2, RADIUS ); // Circle dimensions
     let ( term_width, term_height ) = match terminal::size() {
         Ok( size ) => (size.0, size.1 ), 
         Err( _ ) => ( 0, 0 ), // Handle the Error case
@@ -27,23 +27,32 @@ fn main() {
     let start_y = ( term_height - circle_height as u16 ) / 2;  
 
     // Create and initialize the 2D array
-    let mut grid = vec![ vec![ '.'; config::WIDTH as usize ]; config::HEIGHT as usize ];
+    let mut grid = vec![ vec![ '.'; GRID_WIDTH as usize ]; GRID_HEIGHT as usize ];
 
     let thickness = 1; // adjust thickness of the circle
 
-    // Calculate and mark the circle points
-    for x in -config::RADIUS..config::RADIUS {
-        for y in -(config::RADIUS/2)..config::RADIUS/2 {
+    // find the center of the grid (h,k)
+    let h = GRID_WIDTH / 2;
+    let k = GRID_HEIGHT / 2;
 
-            let grid_x = (x + config::RADIUS) as usize;
-            let grid_y = (y + config::RADIUS/2) as usize;
+    // Adjust for aspect ration of chars in terminal 
+    let aspect_ratio = 2.0;
 
-            let dist_from_center = x*x + y*y;
-            let inner_radius = ( config::RADIUS- thickness ) * ( config::RADIUS- thickness ); 
-            let outer_radius = ( config::RADIUS + thickness ) * ( config::RADIUS+ thickness );
+    for x in 0..GRID_WIDTH {
+        for y in 0..GRID_HEIGHT {
+
+            // Adjust coordinate for aspect ratio
+            let adjusted_x = (( x as f32 - h as f32 ) * aspect_ratio ).powi( 2 );
+            let adjusted_y = ( y as f32 - k as f32 ).powi( 2 ); 
+
+            let dist_from_center = adjusted_x + adjusted_y; 
+            let radius_squared = ( RADIUS as f32 ).powi( 2 ); 
+    
+            let inner_radius = ( RADIUS as f32 - thickness as f32 ).powi(2); 
+            let outer_radius = ( RADIUS as f32 + thickness as f32 ).powi(2);
 
             if inner_radius <= dist_from_center && dist_from_center <= outer_radius {
-                grid[ grid_y ][ grid_x ] = '#'; 
+                grid[ y as usize ][ x as usize ] = '#'; 
             }
 
         }
